@@ -7,7 +7,8 @@
 TrajectoryTransmitterNode::TrajectoryTransmitterNode()
     :   
     BrokerClientNode("trajectory_transmitter_node",BroadcastBrokerId::Transmitter,"broker_exchange","broker_transmitter_topic"), 
-    N_fields_(14),
+    N_time_chassis_fields_(14),
+    N_time_chassis_servo_fields_(14+4),
     mode_(TransmitterMode::Standby)
 {
     // setup ros parameters and file handle
@@ -29,24 +30,34 @@ TrajectoryTransmitterNode::TrajectoryTransmitterNode()
     else{
         RCLCPP_INFO( rclcpp::get_logger("rclcpp"), "Parsing: [%s]", ( this -> file_name ).c_str() );
         this -> initial_msg_ptr = std::make_shared<theo_msgs::msg::TheoWaypoint>();
-        this -> initial_msg_ptr -> state.pose.position.x    = initial_data.data[1];
-        this -> initial_msg_ptr -> state.pose.position.y    = initial_data.data[2];
-        this -> initial_msg_ptr -> state.pose.position.z    = initial_data.data[3]; 
-        this -> initial_msg_ptr -> state.pose.orientation.w = initial_data.data[4];
-        this -> initial_msg_ptr -> state.pose.orientation.x = initial_data.data[5];
-        this -> initial_msg_ptr -> state.pose.orientation.y = initial_data.data[6];
-        this -> initial_msg_ptr -> state.pose.orientation.z = initial_data.data[7];
-        this -> initial_msg_ptr -> state.twist.linear.x     = 0.;
-        this -> initial_msg_ptr -> state.twist.linear.y     = 0.;
-        this -> initial_msg_ptr -> state.twist.linear.z     = 0.;
-        this -> initial_msg_ptr -> state.twist.angular.x    = 0.;
-        this -> initial_msg_ptr -> state.twist.angular.y    = 0.;
-        this -> initial_msg_ptr -> state.twist.angular.z    = 0.;
+        this -> initial_msg_ptr -> chassis_state.pose.position.x    = initial_data.data[1];
+        this -> initial_msg_ptr -> chassis_state.pose.position.y    = initial_data.data[2];
+        this -> initial_msg_ptr -> chassis_state.pose.position.z    = initial_data.data[3]; 
+        this -> initial_msg_ptr -> chassis_state.pose.orientation.w = initial_data.data[4];
+        this -> initial_msg_ptr -> chassis_state.pose.orientation.x = initial_data.data[5];
+        this -> initial_msg_ptr -> chassis_state.pose.orientation.y = initial_data.data[6];
+        this -> initial_msg_ptr -> chassis_state.pose.orientation.z = initial_data.data[7];
+        this -> initial_msg_ptr -> chassis_state.twist.linear.x     = 0.;
+        this -> initial_msg_ptr -> chassis_state.twist.linear.y     = 0.;
+        this -> initial_msg_ptr -> chassis_state.twist.linear.z     = 0.;
+        this -> initial_msg_ptr -> chassis_state.twist.angular.x    = 0.;
+        this -> initial_msg_ptr -> chassis_state.twist.angular.y    = 0.;
+        this -> initial_msg_ptr -> chassis_state.twist.angular.z    = 0.;
+        if(  
+            initial_data.data.size() == ( (this->N_time_chassis_servo_fields_) ) 
+        ){
+            this -> initial_msg_ptr   -> servo_state.angle.pan_angle  = initial_data.data[14];
+            this -> initial_msg_ptr   -> servo_state.angle.tilt_angle = initial_data.data[15];
+            this -> initial_msg_ptr   -> servo_state.vel.pan_vel      = 0.;
+            this -> initial_msg_ptr   -> servo_state.vel.tilt_vel     = 0.;
+            this -> initial_msg_ptr   -> servo_enabled                = true;
+        }
+        else this -> initial_msg_ptr -> servo_enabled = false;
     }
     this -> reset_file_handle();
 
     // setup service/publishers/subscribers
-    this -> publisher_ = this -> create_publisher<theo_msgs::msg::TheoWaypoint>("trajectory_transmission", 10);
+    this -> publisher_  = this -> create_publisher<theo_msgs::msg::TheoWaypoint>("trajectory_transmission", 10);
     this -> send_broker_request_( BroadcastBrokerCodes::Check  );
 };
 
@@ -113,7 +124,13 @@ TransmitterParsedData TrajectoryTransmitterNode::parse_next_( double target_time
 
         // if all data received successfully, copy data to previous scope and publish
         if( parsed_data_out.succeeded ){
-            if( data_vec_at_iter.size() == this -> N_fields_ ) parsed_data_out.data = data_vec_at_iter;
+            if( 
+                data_vec_at_iter.size() == (this->N_time_chassis_fields_)
+                ||
+                data_vec_at_iter.size() == (this->N_time_chassis_servo_fields_)  
+            ){
+                parsed_data_out.data = data_vec_at_iter;
+            }
             else parsed_data_out.succeeded = false;
         }
 
@@ -123,20 +140,33 @@ TransmitterParsedData TrajectoryTransmitterNode::parse_next_( double target_time
 };
 
 
-void TrajectoryTransmitterNode::write_parsed2msg( TransmitterParsedData parsed_data, theo_msgs::msg::TheoWaypoint& msg_out ){
-    msg_out.state.pose.position.x    = parsed_data.data[1];
-    msg_out.state.pose.position.y    = parsed_data.data[2];
-    msg_out.state.pose.position.z    = parsed_data.data[3]; 
-    msg_out.state.pose.orientation.w = parsed_data.data[4];
-    msg_out.state.pose.orientation.x = parsed_data.data[5];
-    msg_out.state.pose.orientation.y = parsed_data.data[6];
-    msg_out.state.pose.orientation.z = parsed_data.data[7];
-    msg_out.state.twist.linear.x     = parsed_data.data[8];
-    msg_out.state.twist.linear.y     = parsed_data.data[9];
-    msg_out.state.twist.linear.z     = parsed_data.data[10];
-    msg_out.state.twist.angular.x    = parsed_data.data[11];
-    msg_out.state.twist.angular.y    = parsed_data.data[12];
-    msg_out.state.twist.angular.z    = parsed_data.data[13];
+void TrajectoryTransmitterNode::write_parsed2msg( 
+    TransmitterParsedData parsed_data, 
+    theo_msgs::msg::TheoWaypoint& msg_out
+){
+    msg_out.chassis_state.pose.position.x    = parsed_data.data[1];
+    msg_out.chassis_state.pose.position.y    = parsed_data.data[2];
+    msg_out.chassis_state.pose.position.z    = parsed_data.data[3]; 
+    msg_out.chassis_state.pose.orientation.w = parsed_data.data[4];
+    msg_out.chassis_state.pose.orientation.x = parsed_data.data[5];
+    msg_out.chassis_state.pose.orientation.y = parsed_data.data[6];
+    msg_out.chassis_state.pose.orientation.z = parsed_data.data[7];
+    msg_out.chassis_state.twist.linear.x     = parsed_data.data[8];
+    msg_out.chassis_state.twist.linear.y     = parsed_data.data[9];
+    msg_out.chassis_state.twist.linear.z     = parsed_data.data[10];
+    msg_out.chassis_state.twist.angular.x    = parsed_data.data[11];
+    msg_out.chassis_state.twist.angular.y    = parsed_data.data[12];
+    msg_out.chassis_state.twist.angular.z    = parsed_data.data[13];
+    if(  
+        parsed_data.data.size() == (this->N_time_chassis_servo_fields_)
+    ){
+        msg_out.servo_state.angle.pan_angle  = parsed_data.data[14];
+        msg_out.servo_state.angle.tilt_angle = parsed_data.data[15];
+        msg_out.servo_state.vel.pan_vel      = parsed_data.data[16];
+        msg_out.servo_state.vel.tilt_vel     = parsed_data.data[17];
+        msg_out.servo_enabled                = true;
+    }
+    else msg_out.servo_enabled                = false;
 };
 
 

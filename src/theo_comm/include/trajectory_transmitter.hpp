@@ -37,7 +37,8 @@ class TrajectoryTransmitterNode :  public BrokerClientNode {
         // CSV File Handling M&M
         std::string file_name;
         std::ifstream file_handle;
-        size_t N_fields_;
+        size_t N_time_chassis_fields_;
+        size_t N_time_chassis_servo_fields_;
         theo_msgs::msg::TheoWaypoint::SharedPtr initial_msg_ptr;
         void reset_file_handle();
         TransmitterParsedData parse_next_( double );

@@ -29,12 +29,13 @@ find_package(geometry_msgs REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
-  "msg/TheoFrameState.msg"
+  "msg/TheoChassisState.msg"
   "msg/TheoServoAddition.msg"
   "msg/TheoServoCmd.msg"
   "msg/TheoMechanumCmd.msg"
   "msg/TheoCode.msg"
   "msg/TheoWaypoint.msg"
+  "msg/TheoServoState.msg"
   DEPENDENCIES geometry_msgs # Add packages that above messages depend on, in this case geometry_msgs for Sphere.msg
 )
 

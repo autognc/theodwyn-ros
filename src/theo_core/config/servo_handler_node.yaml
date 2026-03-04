@@ -10,4 +10,4 @@ eowyn:
       pan_min_max_pwr       : [500,2500]
       tilt_min_max_pwr      : [500,2500]
       pan_safety_bounds     : [10,260]
-      tilt_safety_bounds    : [10,170]
+      tilt_safety_bounds    : [40,140]

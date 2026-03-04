@@ -1,5 +1,7 @@
 eowyn:
   pid_controller_node:
     ros__parameters:
-      p_linear_gain   : 0.75
-      p_angular_gain  : 0.50
+      p_linear_gain     : 0.75
+      p_angular_gain    : 0.50
+      p_servo_gain      : 0.50
+      rpy_degrees_C0_C  : [90., 0., 90.]
