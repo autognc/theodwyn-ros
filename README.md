@@ -129,15 +129,18 @@ Each of the provided packages has respective configuration files, which may be u
 
 | Parameter            | Type     | Default           | Description |
 |---|---:|---|---|
-| `p_linear_gain`                   | float | `0`     | proporational gain for translational controller   |
-| `i_linear_gain`                   | float | `0`     | proporational gain for translational controller   |
-| `d_linear_gain`                   | float | `0`     | proporational gain for translational controller    |
-| `p_angular_gain`                  | float | `0`     | proporational gain for translational controller   |
-| `i_angular_gain`                  | float | `0`     | proporational gain for translational controller   |
-| `d_angular_gain`                  | float | `0`     | proporational gain for translational controller    |
-| `proximity_met_range_meters`      | float | `0.05`  | proximity range error to confirm configuration in meters    |
-| `proximity_met_direction_degrees` | float | `5`     | proximity direction error to confirm configuration in degrees  |
-
+| `p_linear_gain`                   | float   | `0`        | proporational gain for translational controller             |
+| `i_linear_gain`                   | float   | `0`        | integral gain for translational controller                  |
+| `d_linear_gain`                   | float   | `0`        | derivative gain for translational controller                |
+| `p_angular_gain`                  | float   | `0`        | proporational gain for angular controller                   |
+| `i_angular_gain`                  | float   | `0`        | integral gain for angular controller                        |
+| `d_angular_gain`                  | float   | `0`        | derivative gain for angular controller                      |
+| `p_servo_gain`                    | float   | `0`        | proporational gain for servo controller                     |
+| `i_servo_gain`                    | float   | `0`        | integral gain for servo controller                          |
+| `d_servo_gain`                    | float   | `0`        | derivative gain for servo controller                        |
+| `proximity_met_range_meters`      | float   | `0.05`     | proximity range error to confirm configuration in meters    |
+| `proximity_met_direction_degrees` | float   | `5`        | proximity direction error to confirm configuration in degrees (representative for both chassis and pan-tilt errors, respectively) |
+| `rpy_degrees_C0_C`                | list[3] | `[0,0,0]`  | roll-pitch-yaw angles, in degrees, describing the *active* rotation from the *chassis* frame to the *servo* frame  |
 ### theo_comm
 
 #### Parameters for `trajectory_transmitter_node`
@@ -152,6 +155,41 @@ Each of the provided packages has respective configuration files, which may be u
 
 ## Execution
 ### Transmitting CSV Trajectory from External Machine to a *Theodwyn* Robot
+A CSV of trajectory waypoints may be broadcasted from an external machine to the *theodwyn* robotic system. However, it is required to follow a specific column-data organization for the broadcast functionality included in this repository. To broadcast a trajectory for the *Theodwyn* robot chassis (soley), the CSV data must be organized as the following, 
+
+| Column | Type  | Desciption  |
+|---|---:|---|
+|  `0`  |  float  | time of the waypoint described by the following column fields in seconds                                            |
+|  `1`  |  float  | x position, reference to the *world* frame origin, represented in the *world* frame in meters                       |
+|  `2`  |  float  | y position, reference to the *world* frame origin, represented in the *world* frame in meters                       |
+|  `3`  |  float  | z position, reference to the *world* frame origin, represented in the *world* frame in meters                       |
+|  `4`  |  float  | w scalar part of the quarternion describing the *active* rotation from the *world* to *chassis* frame               |
+|  `5`  |  float  | x in vector part of the quarternion describing the *active* rotation from the *world* frame to *chassis* frame      |
+|  `6`  |  float  | y in vector part of the quarternion describing the *active* rotation from the *world* frame to *chassis* frame      |
+|  `7`  |  float  | z in vector part of the quarternion describing the *active* rotation from the *world* frame to *chassis* frame      |
+|  `8`  |  float  | x velocity, as interpreted by a *world* observer, represented in the *world* frame in meters per seconds            |
+|  `9`  |  float  | y velocity, as interpreted by a *world* observer, represented in the *world* frame in meters per seconds            |
+| `10`  |  float  | z velocity, as interpreted by a *world* observer, represented in the *world* frame in meters per seconds            |
+| `11`  |  float  | x angular velocity, as interpreted by a *world* observer, represented in the *chassis* frame in radians per seconds |
+| `12`  |  float  | y angular velocity, as interpreted by a *world* observer, represented in the *chassis* frame in radians per seconds |
+| `13`  |  float  | z angular velocity, as interpreted by a *world* observer, represented in the *chassis* frame in radians per seconds |
+
+> [!NOTE]
+> Although aspects of each of the 6-DOF of motion must be described within the CSV, the *Theodwyn* robot chassis are naturally restricted to locally planar motion. Thus, at the moment, in many cases, the controller will ignore the data provided in some of the broadcasted fields. Although this is the case, we maintain their requrement to enable potential expansions to the *Theodwyn* robotic systems that may be introduced at a later date.
+
+
+To broadcast a trajectory for the pan-tilt system, the following fields must be included, in addition to the previous 14 fields for the chassis waypoints, and will be instantiated with respect to the time in column `0`,
+
+| Column  | Type  | Desciption  |
+|---|---:|---|
+| `14` |  float  | pan angle, reference to the *servo* frame, in radians                                |
+| `15` |  float  | tilt angle, reference to the *servo* frame, in radians                               |
+| `16` |  float  | pan angular velocity, as interpreted by a *chassis* observer, in radians per second  |
+| `17` |  float  | tilt angular velocity, as interpreted by a *chassis* observer, in radians per second |
+
+> [!NOTE]
+> Users are permitted to include or exclude a header within the transmitted CSV at their leisure. This is because the default exception behavior is to skip CSV lines with unexpected/erroronous data.
+
 #### (1a) Starting Autonomous and Tele-Operation Nodes Onboard *Theodwyn* Robot
 The robot must, at some point prior to operations, spin up its ROS nodes onboard. The following in the top-level directory, regardless of when and how it is executed, will do so
 ```bash
