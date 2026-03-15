@@ -5,6 +5,7 @@
 #include <math.h>
 #include <cmath>
 #include <vector>
+#include <algorithm>
 #include <angles/angles.h>
 #include "controller_modes.hpp"
 #include "std_msgs/msg/bool.hpp"
@@ -21,6 +22,7 @@ struct MocapData{
 };
 
 struct PanTiltData{
+    double receive_time;
     double pan_angle;
     double tilt_angle;
     bool expired = true;
@@ -40,6 +42,29 @@ struct WaypointData{
 };
 
 
+struct Error3D{
+    double receive_time;
+    Eigen::Vector3d p_error = Eigen::Vector3d::Zero();
+    Eigen::Vector3d i_error = Eigen::Vector3d::Zero();
+    Eigen::Vector3d d_error = Eigen::Vector3d::Zero();
+};
+
+
+struct Error2D{
+    double receive_time;
+    Eigen::Vector2d p_error = Eigen::Vector2d::Zero();
+    Eigen::Vector2d i_error = Eigen::Vector2d::Zero();
+    Eigen::Vector2d d_error = Eigen::Vector2d::Zero();
+};
+
+
+struct Error1D{
+    double p_error = 0;
+    double i_error = 0;
+    double d_error = 0;
+};
+
+
 class PIDControllerNode : public BrokerClientNode {
 
     public:
@@ -50,17 +75,25 @@ class PIDControllerNode : public BrokerClientNode {
 
         // Controller Handling | // Control Broadcast Parameters
         double p_linear_gain_;
-        double i_linear_gain_; // not currently used -- eh
-        double d_linear_gain_; // not currently used -- eh
+        double i_linear_gain_; 
+        double d_linear_gain_; 
         double p_angular_gain_;
-        double i_angular_gain_; // not currently used -- eh
-        double d_angular_gain_; // not currently used -- eh
+        double i_angular_gain_; 
+        double d_angular_gain_;
         double p_servo_gain_;
-        double i_servo_gain_; // not currently used -- eh
-        double d_servo_gain_; // not currently used -- eh
+        double i_servo_gain_;
+        double d_servo_gain_;
         double proximity_met_range_meters_;
         double proximity_met_direction_radians_;
+        double chassis_linear_error_integrator_threshold_; 
+        double chassis_angular_error_integrator_threshold_; 
+        double servo_error_integrator_threshold_; 
+        double valid_error_update_dt_; 
         double last_yaw_;
+        Eigen::Vector3d chassis_error_iterm_;
+        Eigen::Vector2d servo_error_iterm_;
+        Error3D last_chassis_errors_;
+        Error2D last_servo_errors_;
         ControllerMode mode_;
         WaypointData last_waypoint_;
         MocapData last_chassis_mocap_;
@@ -79,6 +112,14 @@ class PIDControllerNode : public BrokerClientNode {
         void grab_n_expire_chassis_mocap_data( MocapData& );
         void grab_n_expire_servo_mocap_data( MocapData& );
         Eigen::Matrix2d get_last_rotm();
+        void reset_signal_errors_();
+        void update_chassis_errors_( Error3D );
+        void update_servo_errors_( Error2D );
+        void unwind_accumulated_errors();
+        Eigen::Vector3d add_n_grab_chassis_error_i_term_( Eigen::Vector3d&, double& );
+        Eigen::Vector2d add_n_grab_servo_error_i_term_( Eigen::Vector2d&, double& );
+        Error3D grab_n_update_chassis_errors( WaypointData&, MocapData& );
+        Error2D grab_n_update_servo_errors( WaypointData&, PanTiltData& );
         void process_on_active();
         bool process_on_responding();
         bool check_configuration( WaypointData&, MocapData&, PanTiltData& );

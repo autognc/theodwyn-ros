@@ -12,33 +12,41 @@ PIDControllerNode::PIDControllerNode()
 {
 
     // setup ros parameters and file handle
-    this -> declare_parameter<double>( "p_linear_gain", 0. );
-    this -> declare_parameter<double>( "i_linear_gain", 0. );
-    this -> declare_parameter<double>( "d_linear_gain", 0. );
-    this -> declare_parameter<double>( "p_angular_gain", 0. );
-    this -> declare_parameter<double>( "i_angular_gain", 0. );
-    this -> declare_parameter<double>( "d_angular_gain", 0. );
-    this -> declare_parameter<double>( "p_servo_gain", 0. );
-    this -> declare_parameter<double>( "i_servo_gain", 0. );
-    this -> declare_parameter<double>( "d_servo_gain", 0. );
-    this -> declare_parameter<double>( "proximity_met_range_meters", 0.05 );
-    this -> declare_parameter<double>( "proximity_met_direction_degrees", 5 );
-    this -> declare_parameter<std::vector<double>>( "rpy_degrees_C0_C", {0.,0.,0.} );
+    this -> declare_parameter<double>( "p_linear_gain",                                 0.          );
+    this -> declare_parameter<double>( "i_linear_gain",                                 0.          );
+    this -> declare_parameter<double>( "d_linear_gain",                                 0.          );
+    this -> declare_parameter<double>( "p_angular_gain",                                0.          );
+    this -> declare_parameter<double>( "i_angular_gain",                                0.          );
+    this -> declare_parameter<double>( "d_angular_gain",                                0.          );
+    this -> declare_parameter<double>( "p_servo_gain",                                  0.          );
+    this -> declare_parameter<double>( "i_servo_gain",                                  0.          );
+    this -> declare_parameter<double>( "d_servo_gain",                                  0.          );
+    this -> declare_parameter<double>( "proximity_met_range_meters",                    0.05        );
+    this -> declare_parameter<double>( "proximity_met_direction_degrees",               5           );
+    this -> declare_parameter<double>( "chassis_linear_error_integrator_threshold",     1           );
+    this -> declare_parameter<double>( "chassis_angular_error_integrator_threshold",    1           );
+    this -> declare_parameter<double>( "servo_error_integrator_threshold",              1           );
+    this -> declare_parameter<double>( "valid_error_update_dt",                         0.1         );
+    this -> declare_parameter<std::vector<double>>( "rpy_degrees_C0_C",                 {0.,0.,0.}  );
 
     double proximity_met_direction_degrees;
     std::vector<double> rpy_C0_C;
-    this -> get_parameter( "p_linear_gain", this -> p_linear_gain_ );
-    this -> get_parameter( "i_linear_gain", this -> i_linear_gain_ );
-    this -> get_parameter( "d_linear_gain", this -> d_linear_gain_ );
-    this -> get_parameter( "p_angular_gain", this -> p_angular_gain_ );
-    this -> get_parameter( "i_angular_gain", this -> i_angular_gain_ );
-    this -> get_parameter( "d_angular_gain", this -> d_angular_gain_ );
-    this -> get_parameter( "p_servo_gain", this -> p_servo_gain_ );
-    this -> get_parameter( "i_servo_gain", this -> i_servo_gain_ );
-    this -> get_parameter( "d_servo_gain", this -> d_servo_gain_ );
-    this -> get_parameter( "proximity_met_range_meters", this -> proximity_met_range_meters_ );
-    this -> get_parameter( "proximity_met_direction_degrees", proximity_met_direction_degrees );
-    this -> get_parameter( "rpy_degrees_C0_C", rpy_C0_C );
+    this -> get_parameter( "p_linear_gain",                                 this -> p_linear_gain_                                  );
+    this -> get_parameter( "i_linear_gain",                                 this -> i_linear_gain_                                  );
+    this -> get_parameter( "d_linear_gain",                                 this -> d_linear_gain_                                  );
+    this -> get_parameter( "p_angular_gain",                                this -> p_angular_gain_                                 );
+    this -> get_parameter( "i_angular_gain",                                this -> i_angular_gain_                                 );
+    this -> get_parameter( "d_angular_gain",                                this -> d_angular_gain_                                 );
+    this -> get_parameter( "p_servo_gain",                                  this -> p_servo_gain_                                   );
+    this -> get_parameter( "i_servo_gain",                                  this -> i_servo_gain_                                   );
+    this -> get_parameter( "d_servo_gain",                                  this -> d_servo_gain_                                   );
+    this -> get_parameter( "proximity_met_range_meters",                    this -> proximity_met_range_meters_                     );
+    this -> get_parameter( "proximity_met_direction_degrees",               proximity_met_direction_degrees                         );
+    this -> get_parameter( "chassis_linear_error_integrator_threshold",     this -> chassis_linear_error_integrator_threshold_      );
+    this -> get_parameter( "chassis_angular_error_integrator_threshold",    this -> chassis_angular_error_integrator_threshold_     );
+    this -> get_parameter( "servo_error_integrator_threshold",              this -> servo_error_integrator_threshold_               );
+    this -> get_parameter( "valid_error_update_dt",                         this -> valid_error_update_dt_                          );
+    this -> get_parameter( "rpy_degrees_C0_C",                              rpy_C0_C                                                );
 
     double deg2rad_ = (3.14159265358979323846/180.0);
     this -> proximity_met_direction_radians_ = deg2rad_ * proximity_met_direction_degrees;
@@ -133,6 +141,7 @@ void PIDControllerNode::change_teleop_authority_to( bool mode ){
 
 
 void PIDControllerNode::switch_mode_( ControllerMode mode_in ){
+    this -> unwind_accumulated_errors();
     switch (mode_in)
     {
     case ControllerMode::Idle:
@@ -185,6 +194,111 @@ Eigen::Matrix2d PIDControllerNode::get_last_rotm(){
         {  cos_yaw, sin_yaw },
         { -sin_yaw, cos_yaw } 
     };
+};
+
+
+void PIDControllerNode::reset_signal_errors_(){
+    double time_now = this -> get_clock() -> now().seconds();
+    Error3D chassis_error_reset;
+    Error2D servo_error_reset;
+    chassis_error_reset.receive_time = time_now;
+    servo_error_reset.receive_time   = time_now;
+    this -> update_chassis_errors_( chassis_error_reset );
+    this -> update_servo_errors_( servo_error_reset );
+    this -> unwind_accumulated_errors();
+};
+
+
+void PIDControllerNode::update_chassis_errors_( Error3D chassis_error_in ){
+    this -> last_chassis_errors_ = chassis_error_in;
+};
+
+
+void PIDControllerNode::update_servo_errors_( Error2D servo_error_in ){
+    this -> last_servo_errors_ = servo_error_in;
+};
+
+
+void PIDControllerNode::unwind_accumulated_errors(){
+    this -> chassis_error_iterm_ = Eigen::Vector3d::Zero();
+    this -> servo_error_iterm_   = Eigen::Vector2d::Zero();
+};
+
+
+Eigen::Vector3d PIDControllerNode::add_n_grab_chassis_error_i_term_( Eigen::Vector3d& err_in, double& dt ){
+    this -> chassis_error_iterm_      += ( err_in * dt );
+    if( this -> chassis_error_iterm_(0) > this -> chassis_linear_error_integrator_threshold_ ){
+        this -> chassis_error_iterm_(0) = this -> chassis_linear_error_integrator_threshold_;
+    };
+    if( this -> chassis_error_iterm_(1) > this -> chassis_linear_error_integrator_threshold_ ){
+        this -> chassis_error_iterm_(1) = this -> chassis_linear_error_integrator_threshold_;
+    };
+    if( this -> chassis_error_iterm_(2) > this -> chassis_angular_error_integrator_threshold_ ){
+        this -> chassis_error_iterm_(2) = this -> chassis_angular_error_integrator_threshold_;
+    };
+
+    return (this -> chassis_error_iterm_);
+};
+
+
+Eigen::Vector2d PIDControllerNode::add_n_grab_servo_error_i_term_( Eigen::Vector2d& err_in, double& dt ){
+    this -> servo_error_iterm_      += ( err_in * dt );
+    
+    if( this -> servo_error_iterm_(0) > this-> servo_error_integrator_threshold_ ){
+        this -> servo_error_iterm_(0) = this-> servo_error_integrator_threshold_;
+    };
+    if( this -> servo_error_iterm_(1) > this-> servo_error_integrator_threshold_ ){
+        this -> servo_error_iterm_(1) = this-> servo_error_integrator_threshold_;
+    };
+
+    return (this -> servo_error_iterm_);
+};
+
+
+Error3D PIDControllerNode::grab_n_update_chassis_errors( WaypointData& waypoint_in, MocapData& mocap_in  ){
+
+    Error3D chassis_errors;
+    chassis_errors.receive_time = mocap_in.receive_time;
+
+    // Determines lienar error from mocap and waypoint difference
+    Eigen::Vector2d linear_p_error = waypoint_in.chassis_position.segment(0,2) - mocap_in.position.segment(0,2);
+    double         angular_p_error = angles::normalize_angle( waypoint_in.chassis_rpy(2) -  mocap_in.rpy(2) );
+    chassis_errors.p_error.segment(0,2) = linear_p_error;
+    chassis_errors.p_error(2)           = angular_p_error;
+
+    // Approximate Integral and Derivative terms
+    double dt = mocap_in.receive_time - ( this->last_chassis_errors_.receive_time );
+    if( dt < (this->valid_error_update_dt_) && dt > 0 ){
+        chassis_errors.i_error = this -> add_n_grab_chassis_error_i_term_( chassis_errors.p_error, dt );
+        chassis_errors.d_error = ( chassis_errors.p_error - this->last_chassis_errors_.p_error ) / dt;
+    }
+
+    this -> update_chassis_errors_( chassis_errors );
+
+    return chassis_errors;
+};
+
+
+Error2D PIDControllerNode::grab_n_update_servo_errors( WaypointData& waypoint_in, PanTiltData& pantilt_in ){
+
+    Error2D servo_errors;
+    servo_errors.receive_time = pantilt_in.receive_time;
+
+    // Determines lienar error from mocap and waypoint difference
+    servo_errors.p_error(0)   = waypoint_in.servo_pan_tilt_angle(0) - pantilt_in.pan_angle;
+    servo_errors.p_error(1)   = waypoint_in.servo_pan_tilt_angle(1) - pantilt_in.tilt_angle;
+
+    // Approximate Integral and Derivative terms
+    double dt = pantilt_in.receive_time - ( this->last_servo_errors_.receive_time );
+    if( dt < (this->valid_error_update_dt_) && dt > 0 ){
+        servo_errors.i_error = this -> add_n_grab_servo_error_i_term_( servo_errors.p_error, dt );
+        servo_errors.d_error = ( servo_errors.p_error - this->last_servo_errors_.p_error ) / dt;
+    }
+
+    this -> update_servo_errors_( servo_errors );
+
+    return servo_errors;
+
 };
 
 
@@ -300,6 +414,7 @@ PanTiltData PIDControllerNode::get_pantilt_from_mocap( MocapData& chassis_mocap,
     ptout.pan_angle  = std::atan2( R_C0_B[1][0],R_C0_B[0][0] ); 
     ptout.tilt_angle = std::asin( -R_C0_B[2][0] );
 
+    ptout.receive_time = chassis_mocap.receive_time;
     ptout.expired    = false;
     
     return ptout;
@@ -314,17 +429,14 @@ void  PIDControllerNode::publish_chassis_control_command( WaypointData& waypoint
     // pull feedback terms if they are available
     if( ! mocap_in.expired ){
         this->last_yaw_ = mocap_in.rpy(2);
-        linear_command += 
-                ( 
-                    this-> p_linear_gain_ * 
-                            ( waypoint_in.chassis_position.segment(0,2) - mocap_in.position.segment(0,2) ) 
-                );
+        Error3D chassis_errors = grab_n_update_chassis_errors( waypoint_in, mocap_in );
+        linear_command +=  this-> p_linear_gain_ * chassis_errors.p_error.segment(0,2)
+                        +    this-> i_linear_gain_ * chassis_errors.i_error.segment(0,2)
+                         +    this-> d_linear_gain_ * chassis_errors.d_error.segment(0,2);
         
-        angular_command += 
-                ( 
-                    this-> p_angular_gain_ * 
-                    angles::normalize_angle( waypoint_in.chassis_rpy(2) -  mocap_in.rpy(2) ) 
-                );
+        angular_command += this-> p_angular_gain_ * chassis_errors.p_error(2)
+                         +    this-> i_angular_gain_ * chassis_errors.i_error(2)
+                          +    this-> d_angular_gain_ * chassis_errors.d_error(2);
          
     } 
 
@@ -348,16 +460,10 @@ void  PIDControllerNode::publish_servo_control_command( WaypointData& waypoint_i
 
     // pull feedback terms if they are available
     if( ! pantilt_in.expired ){
-        command(0) += 
-            ( 
-                this-> p_servo_gain_ * 
-                        ( waypoint_in.servo_pan_tilt_angle(0) - pantilt_in.pan_angle ) 
-            );
-        command(1) += 
-            ( 
-                this-> p_servo_gain_ * 
-                        ( waypoint_in.servo_pan_tilt_angle(1) - pantilt_in.tilt_angle ) 
-            );
+        Error2D servo_errors = grab_n_update_servo_errors( waypoint_in, pantilt_in );
+        command += this-> p_servo_gain_ * servo_errors.p_error
+                 +  this-> i_servo_gain_ * servo_errors.i_error
+                  +  this-> d_servo_gain_ * servo_errors.d_error;
     } 
 
     // package and output

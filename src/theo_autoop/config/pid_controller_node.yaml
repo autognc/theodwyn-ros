@@ -1,7 +1,19 @@
 eowyn:
   pid_controller_node:
     ros__parameters:
-      p_linear_gain     : 0.75
-      p_angular_gain    : 0.50
-      p_servo_gain      : 0.50
-      rpy_degrees_C0_C  : [90., 0., 90.]
+      p_linear_gain :                               0.75
+      i_linear_gain :                               0.1
+      d_linear_gain :                               0.1
+      p_angular_gain :                              0.50
+      i_angular_gain :                              0.08
+      d_angular_gain :                              0.08
+      p_servo_gain :                                0.50
+      i_servo_gain :                                0.08
+      d_servo_gain :                                0.20
+      proximity_met_range_meters :                  0.05
+      proximity_met_direction_degrees :             5.
+      chassis_linear_error_integrator_threshold :   1.
+      chassis_angular_error_integrator_threshold :  1.
+      servo_error_integrator_threshold :            1.
+      valid_error_update_dt :                       0.1
+      rpy_degrees_C0_C :                            [90., 0., 90.]

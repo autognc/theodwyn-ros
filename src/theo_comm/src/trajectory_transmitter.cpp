@@ -288,6 +288,14 @@ void TrajectoryTransmitterNode::timerCallback(){
                   current_time_seconds
                 - this -> trajectory_broadcast_start_time_seconds 
                 - this -> delay_time_seconds;
+
+            if( target_time_seconds < 0. ){
+                // the initial waypoint with zero velocity should be published while waiting for the next
+                theo_msgs::msg::TheoWaypoint waypoint_msg = *this->initial_msg_ptr;
+                waypoint_msg.header.stamp.sec  = current_time_seconds;
+                this -> publisher_ -> publish( waypoint_msg );          
+                break;
+            }
             
             TransmitterParsedData data_next = parse_next_( target_time_seconds );
 

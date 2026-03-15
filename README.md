@@ -132,18 +132,22 @@ Each of the provided packages has respective configuration files, which may be u
 
 | Parameter            | Type     | Default           | Description |
 |---|---:|---|---|
-| `p_linear_gain`                   | float   | `0`        | proporational gain for translational controller             |
-| `i_linear_gain`                   | float   | `0`        | integral gain for translational controller                  |
-| `d_linear_gain`                   | float   | `0`        | derivative gain for translational controller                |
-| `p_angular_gain`                  | float   | `0`        | proporational gain for angular controller                   |
-| `i_angular_gain`                  | float   | `0`        | integral gain for angular controller                        |
-| `d_angular_gain`                  | float   | `0`        | derivative gain for angular controller                      |
-| `p_servo_gain`                    | float   | `0`        | proporational gain for servo controller                     |
-| `i_servo_gain`                    | float   | `0`        | integral gain for servo controller                          |
-| `d_servo_gain`                    | float   | `0`        | derivative gain for servo controller                        |
-| `proximity_met_range_meters`      | float   | `0.05`     | proximity range error to confirm configuration in meters    |
-| `proximity_met_direction_degrees` | float   | `5`        | proximity direction error to confirm configuration in degrees (representative for both chassis and pan-tilt errors, respectively) |
-| `rpy_degrees_C0_C`                | list[3] | `[0,0,0]`  | roll-pitch-yaw angles, in degrees, describing the *active* rotation from the *chassis* frame to the *servo* frame  |
+| `p_linear_gain`                             | float   | `0`        | proporational gain for translational controller             |
+| `i_linear_gain`                             | float   | `0`        | integral gain for translational controller                  |
+| `d_linear_gain`                             | float   | `0`        | derivative gain for translational controller                |
+| `p_angular_gain`                            | float   | `0`        | proporational gain for angular controller                   |
+| `i_angular_gain`                            | float   | `0`        | integral gain for angular controller                        |
+| `d_angular_gain`                            | float   | `0`        | derivative gain for angular controller                      |
+| `p_servo_gain`                              | float   | `0`        | proporational gain for servo controller                     |
+| `i_servo_gain`                              | float   | `0`        | integral gain for servo controller                          |
+| `d_servo_gain`                              | float   | `0`        | derivative gain for servo controller                        |
+| `chassis_linear_error_integrator_threshold` | float   | `1`        | saturation threshold for integrator of translational chassis errors for the associated PID controller in meter-seconds |
+| `chassis_angular_error_integrator_threshold`| float   | `1`        | saturation threshold for integrator of angular chassis errors for the associated PID controller in radian-seconds |
+| `servo_error_integrator_threshold`          | float   | `1`        | saturation threshold for integrator of servo angular errors for the associated PID controller in radian-seconds        |
+| `valid_error_update_dt`                     | float   | `0.1`      | maximum time between error measurements to conduct numerical approximations for the error signal derivatives and integrations in seconds |
+| `proximity_met_range_meters`                | float   | `0.05`     | proximity range error to confirm configuration in meters    |
+| `proximity_met_direction_degrees`           | float   | `5`        | proximity direction error to confirm configuration in degrees (representative for both chassis and pan-tilt errors, respectively) |
+| `rpy_degrees_C0_C`                          | list[3] | `[0,0,0]`  | roll-pitch-yaw angles, in degrees, describing the *active* rotation from the *chassis* frame to the *servo* frame  |
 ### theo_comm
 
 #### Parameters for `trajectory_transmitter_node`
