@@ -58,7 +58,7 @@ These commands will spawn `build/`, `install/`, `log/` folders in the top-level 
 ```bash
 source install/setup.bash
 ```
-
+Note: You also may need to install `catkin_pkg`: `pip install catkin_pkg`.
 ---
 
 ## Configuration
@@ -204,8 +204,21 @@ To broadcast a trajectory for the pan-tilt system, the following fields must be 
 #### (1a) Starting Autonomous and Tele-Operation Nodes Onboard *Theodwyn* Robot
 The robot must, at some point prior to operations, spin up its ROS nodes onboard. The following in the top-level directory, regardless of when and how it is executed, will do so
 ```bash
+source ~/.bashrc # ssh profile issue
 source install/setup.bash                       # ONLY needs to be run once per shell session
 ```
+Mount usb
+```bash
+lsblk
+sudo mount /dev/sda1 /mnt/usb/ # could be /dev/sdb1
+```
+Runtime options
+```bash
+ros2 launch recording.launch.py # run trajectory + image recording, cd ~/Workspace/collective-ros
+ros2 launch eowyn.launch.py # run trajectory + measurement node + filter node (+ image recording?)
+```
+
+The thing that stops the robot after a trajectory is run is if the controller is connected. So if you don't turn on the controller b/4 running a trajectory, the robot will contrinue. 
 ```bash
 ros2 launch theo_core autoop_drive_servo.launch       # configurations may need to be changed in case of unexpected behavior
 ```
@@ -218,6 +231,58 @@ The external machine/computer will spin up the transmission and vicon receiver n
 ```bash
 CSV_FILE=$(realpath "csv_out.csv")
 ```
+To allow local agnc pcs connected via ethernet to the local router (tplink)
 ```bash
+sudo nft add rule inet filter input iif "enp1s0" ip saddr 192.168.0.0/24 ip protocol udp accept 
+sudo nft add rule inet filter input iif "enp1s0" ip saddr 192.168.0.0/24 ip protocol tcp accept
+```
+
+```bash
+cd ~/agnc_repos/theodwyn-ros/
+source /opt/ros/humble/setup.bash
+source install/setup.bash
+ros2 topic list
 ros2 launch theo_comm transmit_trajectory.launch.py transmit_file_path:=$CSV_FILE
 ```
+
+Example:
+```bash
+CSV_FILE=$(realpath "/home/saa4743/rosrunning/trajs/csv_out_002.csv")
+ros2 launch theo_comm transmit_trajectory.launch.py transmit_file_path:=$CSV_FILE
+```
+
+Closeout: CNTRL + C in both terminals
+```bash
+mv /home/jetson/tmp/* /mnt/usb/
+```
+# Updates
+Go into individual repos and pull down updates
+and then run `colcon build` at `/home/jetson/Workspace/collective-ros`
+```bash
+colcon build
+```
+
+Updates to repos on the jetson:
+```bash
+cd 
+/home/jetson/Workspace/pose_est # update respective repos
+pip install /repo 
+# pip install without e after cding into respective repos, will install in the site packages
+# example: /home/jetson/Workspace/pose_est/python-pose-terrier
+pip install numpy==1.26.4 # may have to do this
+```
+
+# Data Movement Commands
+broadcast comp
+```bash
+cd /home/saa4743/rosrunning/collections/
+mkdir run_004
+```
+
+jetson comp
+```bash
+scp -r ~/tmp/* saa4743@10.149.11.76://home/saa4743/rosrunning/collections/run_004
+rm -rf ~/tmp/*
+```
+
+# Modify Configs
