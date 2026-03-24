@@ -247,7 +247,8 @@ ros2 launch theo_comm transmit_trajectory.launch.py transmit_file_path:=$CSV_FIL
 
 Example:
 ```bash
-CSV_FILE=$(realpath "/home/saa4743/rosrunning/trajs/csv_out_002.csv")
+CSV_FILE=$(realpath "/home/saa4743/rosrunning/trajs/csv_out_wider_pointing.csv")
+# CSV_FILE=$(realpath "/home/saa4743/rosrunning/trajs/calib_arc_scan_trajectory_001.csv")
 ros2 launch theo_comm transmit_trajectory.launch.py transmit_file_path:=$CSV_FILE
 ```
 
@@ -281,8 +282,10 @@ mkdir run_004
 
 jetson comp
 ```bash
-scp -r ~/tmp/* saa4743@10.149.11.76://home/saa4743/rosrunning/collections/run_004
+# scp -r ~/tmp/* saa4743@10.149.11.76://home/saa4743/rosrunning/collections/run_004
+scp -r /home/jetson/tmp/* saa4743@10.157.137.123://home/saa4743/agnc_repos/nav_ros/testing/live_tests/run_008
 rm -rf ~/tmp/*
+
 ```
 
 # Modify Configs
