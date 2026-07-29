@@ -204,6 +204,8 @@ To broadcast a trajectory for the pan-tilt system, the following fields must be 
 #### (1a) Starting Autonomous and Tele-Operation Nodes Onboard *Theodwyn* Robot
 The robot must, at some point prior to operations, spin up its ROS nodes onboard. The following in the top-level directory, regardless of when and how it is executed, will do so
 ```bash
+ssh jetson@192.168.0.99
+akellacdus
 source ~/.bashrc # ssh profile issue
 source install/setup.bash                       # ONLY needs to be run once per shell session
 ```
@@ -247,8 +249,19 @@ ros2 launch theo_comm transmit_trajectory.launch.py transmit_file_path:=$CSV_FIL
 
 Example:
 ```bash
-CSV_FILE=$(realpath "/home/saa4743/rosrunning/trajs/csv_out_wider_pointing.csv")
+# CSV_FILE=$(realpath "/home/saa4743/rosrunning/trajs/csv_out_wider_pointing.csv")
 # CSV_FILE=$(realpath "/home/saa4743/rosrunning/trajs/calib_arc_scan_trajectory_001.csv")
+# CSV_FILE=$(realpath "/mnt/agnc-drive/hil_testing/trajectories/csv_undergrad_traj_003.csv")
+# CSV_FILE=$(realpath "/mnt/agnc-drive/hil_testing/trajectories/csv_undergrad_traj_004.csv")
+# CSV_FILE=$(realpath "/mnt/agnc-drive/hil_testing/trajectories/csv_undergrad_traj_005.csv")
+# CSV_FILE=$(realpath "/mnt/agnc-drive/hil_testing/trajectories/calib_arc_scan_trajectory_003.csv")
+CSV_FILE=$(realpath "/mnt/agnc-drive/hil_testing/trajectories/calib_arc_scan_trajectory_004.csv")
+# CSV_FILE=$(realpath "/mnt/agnc-drive/hil_testing/trajectories/csv_undergrad_traj_005.csv")
+# CSV_FILE=$(realpath "/mnt/agnc-drive/hil_testing/trajectories/csv_out_original_pointing.csv")
+# CSV_FILE=$(realpath "/mnt/agnc-drive/hil_testing/trajectories/csv_out_wider_pointing.csv")
+CSV_FILE=$(realpath "/mnt/agnc-drive/hil_testing/trajectories/csv_out_001.csv")
+CSV_FILE=$(realpath "/mnt/agnc-drive/hil_testing/trajectories/2026Intern005.csv")
+echo $CSV_FILE
 ros2 launch theo_comm transmit_trajectory.launch.py transmit_file_path:=$CSV_FILE
 ```
 
@@ -283,7 +296,8 @@ mkdir run_004
 jetson comp
 ```bash
 # scp -r ~/tmp/* saa4743@10.149.11.76://home/saa4743/rosrunning/collections/run_004
-scp -r /home/jetson/tmp/* saa4743@10.157.137.123://home/saa4743/agnc_repos/nav_ros/testing/live_tests/run_008
+# scp -r /home/jetson/tmp/* saa4743@10.157.137.123://home/saa4743/agnc_repos/nav_ros/testing/live_tests/run_008
+scp -r /home/jetson/tmp/* saa4743@10.157.137.123:///mnt/agnc-drive/hil_testing/soho_textured/run_026
 rm -rf ~/tmp/*
 
 ```

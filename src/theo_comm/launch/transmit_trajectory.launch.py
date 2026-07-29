@@ -49,7 +49,8 @@ def generate_launch_description():
                 ]
             ),
             launch_arguments={
-                'hostname': '192.168.0.62', # needs to change if hostname does
+                'hostname': '192.168.0.62', # needs to change if hostname does, CHANGE THIS
+                # for example, AHG vicon cage, 192.168.50.10
             }.items()
         ),
     ])
