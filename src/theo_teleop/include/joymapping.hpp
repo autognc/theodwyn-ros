@@ -81,6 +81,7 @@ namespace Theodwyn
         rclcpp::Time last_joy_time_;
         // Stick axis configuration threshold
         static constexpr double stick_conf_thresh_ = 0.99;
+        static constexpr double settings_change_thresh_ = 0.1;
 
         /// Default for chassis_max_linspeed_.
         static constexpr double DEFAULT_chassis_max_linspeed_ = 1.0;

@@ -122,11 +122,11 @@ Each of the provided packages has respective configuration files, which may be u
 
 | Parameter            | Type     | Default           | Description |
 |---|---:|---|---|
-| `chassis_max_linspeed`    | float | `1`   | maximum linear speed in meters per second   |
-| `chassis_max_angspeed`    | float | `1`   | maximum linear speed in radian per second   |
-| `pantilt_maxspeed`        | float | `1`   | maximum servo speed in radian per second    |
-| `settings_update_waitime` | float | `0.5` | waittime for updating settings              |
-
+| `chassis_max_linspeed`    | float | `1`     | maximum linear speed in meters per second   |
+| `chassis_max_angspeed`    | float | `1`     | maximum linear speed in radian per second   |
+| `pantilt_maxspeed`        | float | `1`     | maximum servo speed in radian per second    |
+| `settings_update_waitime` | float | `0.5`   | waittime for updating settings              |
+| `speed_locked`            | bool  | `false` | lock speed settings during runtime          |
 
 ### theo_autoop
 
@@ -168,8 +168,21 @@ Each of the provided packages has respective configuration files, which may be u
 ---
 
 ## Execution
-### Transmitting CSV Trajectory from External Machine to a *Theodwyn* Robot
-A CSV of trajectory waypoints may be broadcasted from an external machine to the *theodwyn* robotic system. However, it is required to follow a specific column-data organization for the broadcast functionality included in this repository. To broadcast a trajectory for the *Theodwyn* robot chassis (soley), the CSV data must be organized as the following, 
+### (1) Tele-Operating *Theodwyn* Robot with Connected Controller
+The *Theodwyn* robotic system may be operated using a connected controller, enabled with the ROS `joy` package, whose bindings are provided below for reference.
+
+![joystick_mapping](docs/joystick_mapping.jpg)
+
+The robot must, at some point prior to operations, spin up its ROS nodes onboard. The following in the top-level directory, regardless of when and how it is executed, will do so
+```bash
+source install/setup.bash                       # ONLY needs to be run once per shell session
+```
+```bash
+ros2 launch theo_core teleop_drive_servo.launch       # configurations may need to be changed in case of unexpected behavior
+```
+
+### (2) Transmitting CSV Trajectory from External Machine to a *Theodwyn* Robot
+A CSV of trajectory waypoints may be broadcasted from an external machine to the *Theodwyn* robotic system. However, it is required to follow a specific column-data organization for the broadcast functionality included in this repository. To broadcast a trajectory for the *Theodwyn* robot chassis (soley), the CSV data must be organized as the following, 
 
 | Column | Type  | Desciption  |
 |---|---:|---|
@@ -204,7 +217,7 @@ To broadcast a trajectory for the pan-tilt system, the following fields must be 
 > [!NOTE]
 > Users are permitted to include or exclude a header within the transmitted CSV at their leisure. This is because the default exception behavior is to skip CSV lines with unexpected/erroronous data.
 
-#### (1a) Starting Autonomous and Tele-Operation Nodes Onboard *Theodwyn* Robot
+#### (2a) Starting Autonomous Operation Nodes Onboard *Theodwyn* Robot
 The robot must, at some point prior to operations, spin up its ROS nodes onboard. The following in the top-level directory, regardless of when and how it is executed, will do so
 ```bash
 source install/setup.bash                       # ONLY needs to be run once per shell session
@@ -216,7 +229,7 @@ ros2 launch theo_core autoop_drive_servo.launch       # configurations may need 
 > [!WARNING]
 > The user profile on the *Theodwyn* robot is required to be a member of the following user groups for onboard communications during robot operations: `dialout`, `gpio`, `i2c`, `tty`
 
-#### (1b) Starting Trajectory Transmission from External Computer
+#### (2b) Starting Trajectory Transmission from External Computer
 The external machine/computer will spin up the transmission and vicon receiver nodes, external to the *Theodwyn* Robot. After sourcing the `install/setup.bash`, say, in the current directory, the user has a csv file named `csv_out.csv`. The following can be used to transmit the trajectory, assuming the *Theodwyn* Robot and external machine are on the same local network.
 ```bash
 CSV_FILE_OR_FOLDER=$(realpath "csv_out.csv")

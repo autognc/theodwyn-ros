@@ -87,10 +87,11 @@ void JoyMapping::mappingCallback(
     //  3  -
     //  4  -
     //  5  -
-    //  6  -
+    //  6  - Chassis Bwz-
+    //  7  - Chassis Bwz+
     //  8  -
-    //  9  - Chassis Bwz+
-    //  10 - Chassis Bwz-
+    //  9  - 
+    //  10 - 
     //  11 - Chassis Max Speed +
     //  12 - Chassis Max Speed -
     //  13 - Pan-Tilt Max Speed -
@@ -108,8 +109,8 @@ void JoyMapping::mappingCallback(
     //  1  - Chassis Bvy
     //  2  - PT Bvx
     //  3  - PT Bvy
-    //  4  -
-    //  5  -
+    //  4  - Chassis Bw+
+    //  5  - Chassis Bw-
     // ------------------------------------
 
     geometry_msgs::msg::Twist chassis_msg_out;
@@ -124,7 +125,6 @@ void JoyMapping::mappingCallback(
                 the controller driver reports extreme axes values on connection/disconnection.
                 Fortunately, it reports impossible values and can be caught by looking at the
                 values on the respective horizontal and vertical axes.
-        WARNING:    If the triggers are ever bound to a command, this idea may need to be extended there.
     */
     bool lstick_nconf = (std::abs(axes_0) > stick_conf_thresh_) && (std::abs(axes_1) > stick_conf_thresh_);
     bool rstick_nconf = (std::abs(axes_2) > stick_conf_thresh_) && (std::abs(axes_3) > stick_conf_thresh_);
@@ -134,14 +134,11 @@ void JoyMapping::mappingCallback(
     {
         chassis_msg_out.linear.x = 0.;
         chassis_msg_out.linear.y = 0.;
-        chassis_msg_out.angular.z = 0.;
     }
     else
     {
         chassis_msg_out.linear.x = chassis_max_linspeed_ * axes_1;
         chassis_msg_out.linear.y = chassis_max_linspeed_ * axes_0;
-        // Bumpers for Angular Velocity
-        chassis_msg_out.angular.z = chassis_max_angspeed_ * double(buttons[6] - buttons[7]);
     }
 
     // // // -> Pantilt Movements (Right Stick)
@@ -156,10 +153,14 @@ void JoyMapping::mappingCallback(
         pantilt_msg_out.tilt_vel = pantilt_maxspeed_ * axes_3;
     }
 
+    // Triggers for Angular Velocity
+    chassis_msg_out.angular.z = chassis_max_angspeed_ * double(axes[4] - axes[5])/2.;
+
     // // Settings Changes
     if (!speed_locked_)
     {
-        if (abs(axes[7]) > 0.1 || abs(axes[6]) > 0.1)
+        double bumper_diff_76 = static_cast<double>(buttons[7] - buttons[6]);
+        if (abs(axes[7]) > settings_change_thresh_ || abs(axes[6]) > settings_change_thresh_ || abs(bumper_diff_76) > settings_change_thresh_ )
         {
 
             rclcpp::Time time = get_clock()->now();
@@ -167,24 +168,32 @@ void JoyMapping::mappingCallback(
             if ((time - last_settings_update_).seconds() > settings_update_waitime_)
             {
 
-                if (axes[7] > 0.1)
+                if (axes[7] > settings_change_thresh_)
                 { // -> Max Chassis Speed Increases
                     chassis_max_linspeed_ *= 1.1;
-                    chassis_max_angspeed_ *= 1.1;
                 }
-                if (axes[7] < -0.1)
+                if (axes[7] < -settings_change_thresh_)
                 { // -> Max Chassis Speed Decreases
                     chassis_max_linspeed_ *= 0.9;
+                }
+
+
+                if ( bumper_diff_76 > settings_change_thresh_ ){
+                    // -> Max Chassis Angular Speed Decreases
+                    chassis_max_angspeed_ *= 1.1;
+                }
+                if ( bumper_diff_76 < -settings_change_thresh_ ){
+                    // -> Max Chassis Angular Speed Decreases
                     chassis_max_angspeed_ *= 0.9;
                 }
-                if (axes[6] < -0.1)
+
+
+                if (axes[6] < -settings_change_thresh_)
                 { // -> Max Chassis Speed Increases
                     pantilt_maxspeed_ *= 1.1;
-                    pantilt_maxspeed_ *= 1.1;
                 }
-                if (axes[6] > 0.1)
+                if (axes[6] > settings_change_thresh_)
                 { // -> Max Chassis Speed Decreases
-                    pantilt_maxspeed_ *= 0.9;
                     pantilt_maxspeed_ *= 0.9;
                 }
                 last_settings_update_ = time;
